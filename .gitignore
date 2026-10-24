@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.bak-*
+.env
+bot.env
+x_app.json
+x_tokens.json*
+pkce.json

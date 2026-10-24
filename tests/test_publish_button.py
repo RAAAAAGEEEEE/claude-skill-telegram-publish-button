@@ -211,12 +211,22 @@ assert pb.sujet(tg, "neuf") == 950 and len(tg.journal) == 1     # sujet deja con
 # Autorisation X : adresse de retour collee, ou attente sur 127.0.0.1
 assert pb.code_et_state("http://127.0.0.1:8765/callback?state=S1&code=C1\n") == ("C1", "S1")
 assert pb.code_et_state("C2 S2") == ("C2", "S2")
-import socket, threading, urllib.request  # noqa: E401,E402
+import socket, threading, time, urllib.request  # noqa: E401,E402
 with socket.socket() as so:
     so.bind(("127.0.0.1", 0))
     port = so.getsockname()[1]
-threading.Timer(0.5, lambda: urllib.request.urlopen(f"http://127.0.0.1:{port}/callback?state=S3&code=C3", timeout=5).read()).start()
-assert pb.code_et_state(pb.attendre_retour(port, delai=10)) == ("C3", "S3")
+
+
+def retour_simule():
+    for _ in range(20):
+        try:
+            return urllib.request.urlopen(f"http://127.0.0.1:{port}/callback?state=S3&code=C3", timeout=10).read()
+        except OSError:
+            time.sleep(0.5)
+
+
+threading.Thread(target=retour_simule, daemon=True).start()
+assert pb.code_et_state(pb.attendre_retour(port, delai=30)) == ("C3", "S3")
 
 # Installation : ids lit les derniers messages et donne les identifiants
 class FauxTgIds(FauxTg):

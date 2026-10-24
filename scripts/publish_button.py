@@ -256,6 +256,7 @@ def cmd_auth_url(ecoute: bool = False) -> None:
 
 def attendre_retour(port: int = 8765, delai: float = 900) -> str:
     """Attend la redirection de X sur 127.0.0.1 et retourne son chemin (le code ne vit que 30 s)."""
+    import socketserver
     from http.server import BaseHTTPRequestHandler, HTTPServer
     recu = []
 
@@ -274,9 +275,14 @@ def attendre_retour(port: int = 8765, delai: float = 900) -> str:
         def log_message(self, *a):
             pass
 
+    class Serveur(HTTPServer):
+        def server_bind(self):  # sans getfqdn(), qui peut prendre plusieurs secondes sur macOS
+            socketserver.TCPServer.server_bind(self)
+            self.server_name, self.server_port = "127.0.0.1", port
+
     fin = time.time() + delai
     try:
-        srv = HTTPServer(("127.0.0.1", port), Retour)
+        srv = Serveur(("127.0.0.1", port), Retour)
     except OSError:
         sys.exit(f"port {port} deja pris sur 127.0.0.1 : liberer ce port, ou utiliser auth-url puis auth-finish")
     with srv:
